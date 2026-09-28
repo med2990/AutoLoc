@@ -1,67 +1,146 @@
-# AutoLoc — Acteurs et cas d'utilisation (Séance 1)
+---
+
+# AutoLoc — Modèle de données (Séance 2)
 
 ## 1. Contexte
 
-**AutoLoc** est une application de gestion de location de véhicules entre agences.
-Ce document présente la première identification des **acteurs** et des **cas d'utilisation** réalisée lors de la Séance 1.
+Lors de la Séance 2, nous avons identifié et implémenté les **entités métier** du domaine AutoLoc sous forme de classes JPA. Cette étape pose les fondations du modèle de données **avant l'ajout des associations** entre entités (prévues en Séance 3).
 
----
+Chaque entité est annotée `@Entity`, utilise Lombok (`@Getter`, `@Setter`, `@NoArgsConstructor`, etc.) et possède une clé primaire auto-générée.
 
-## 2. Acteurs identifiés
+## 2. Entités implémentées
 
-| Acteur | Description | Type |
+| Entité | Description | Champs principaux |
 |---|---|---|
-| **Client** | Personne souhaitant louer un véhicule auprès d'une agence. | Acteur principal |
-| **Agent d'agence** | Employé chargé de gérer les locations, les véhicules et les clients au quotidien dans son agence. | Acteur principal |
-| **Responsable d'agence** | Responsable supervisant l'activité d'une agence (véhicules, agents, statistiques). | Acteur principal |
-| **Administrateur** | Gestionnaire de l'application : comptes, rôles, paramétrage global. | Acteur principal |
+| `Agence` | Agence de location de véhicules. | `idAgence`, `nom`, `adresse`, `ville`, `telephone` |
+| `Client` | Client souhaitant louer un véhicule. | `idClient`, `nom`, `prenom`, `email`, `telephone`, `numPermis`, `dateInscription` |
+| `Employe` | Employé d'une agence (agent ou manager). | `idEmploye`, `nom`, `prenom`, `role` |
+| `Vehicule` | Véhicule de la flotte. | `idVehicule`, `immatriculation`, `marque`, `modele`, `annee`, `statut` |
+| `Reservation` | Réservation d'un véhicule par un client. | `idReservation`, `dateDebut`, `dateFin`, `statut` |
+| `Contrat` | Contrat de location signé. | `idContrat`, `dateSignature`, `montantTotal`, `valide` |
+| `Paiement` | Paiement lié à un contrat. | `idPaiement`, `datePaiement`, `montant`, `modePaiement` |
+| `Maintenance` | Maintenance d'un véhicule. | `idMaintenance`, `dateDebut`, `dateFin`, `description` |
+| `Equipement` | Équipement associé à un véhicule. | `idEquipement`, `libelle` |
 
----
+## 3. Énumérations métier
 
-## 3. Cas d'utilisation par acteur
+Les énumérations suivantes modélisent les états et rôles du domaine :
 
-### 3.1 Client
+### `StatutVehicule`
+- `DISPONIBLE`
+- `LOUE`
+- `EN_MAINTENANCE`
+- `HORS_SERVICE`
 
-- Consulter le catalogue des véhicules disponibles
-- Rechercher un véhicule (par catégorie, agence, dates)
-- Créer un compte / s'authentifier
-- Effectuer une réservation
-- Modifier ou annuler une réservation
-- Consulter l'historique de ses locations
-- Consulter / imprimer sa facture
+### `StatutReservation`
+- `EN_ATTENTE`
+- `CONFIRMEE`
+- `ANNULEE`
+- `TERMINEE`
 
-### 3.2 Agent d'agence
+### `ModePaiement`
+- `ESPECES`
+- `CARTE`
+- `VIREMENT`
 
-- S'authentifier
-- Gérer les véhicules de son agence (ajout, modification, disponibilité)
-- Enregistrer une location (départ du véhicule)
-- Enregistrer le retour d'un véhicule
-- Gérer les clients de son agence
-- Consulter et imprimer les factures
-- Consulter le planning des réservations
+### `RoleEmploye`
+- `AGENT`
+- `MANAGER`
 
-### 3.3 Responsable d'agence
+## 4. Repositories Spring Data
 
-- S'authentifier
-- Gérer les agents de son agence (création, affectation)
-- Superviser les véhicules de son agence
-- Consulter les statistiques d'activité (locations, revenus, taux d'occupation)
-- Valider ou refuser des opérations sensibles (remises, annulations)
-- Consulter les rapports de son agence
+Un repository a été créé pour chaque entité afin de gérer les opérations CRUD via Spring Data JPA :
 
-### 3.4 Administrateur
+- `VehiculeRepository` (implémenté en Séance 2)
+- Les autres repositories suivront au fil des ateliers.
 
-- S'authentifier
-- Gérer les comptes utilisateurs (création, désactivation, rôles)
-- Gérer les agences
-- Gérer les catégories de véhicules et les tarifs
-- Paramétrer l'application (règles, options globales)
-- Consulter les journaux / audits
-- Effectuer des sauvegardes / restaurations
+## 5. Données de démonstration
 
----
+La classe `DataInitializer` (profil `dev`) insère automatiquement 3 véhicules au démarrage si la table `vehicule` est vide :
 
-## 4. Remarques
+| Immatriculation | Marque | Modèle | Année | Statut |
+|---|---|---|---|---|
+| 123 TU 4567 | Renault | Clio | 2022 | DISPONIBLE |
+| 789 TU 1234 | Peugeot | 208 | 2023 | DISPONIBLE |
+| 456 TU 7890 | Volkswagen | Golf | 2021 | LOUE |
 
-- Cette liste est **préliminaire** : elle sera affinée lors des séances suivantes (ajout possible d'acteurs secondaires tels qu'un **système de paiement** ou un **service de maintenance**).
-- Les cas d'utilisation seront détaillés (description, préconditions, scénario nominal, exceptions) dans les diagrammes et fiches descriptives à venir.
+## 6. Schéma SQL généré
+
+Au démarrage, Hibernate crée automatiquement les tables suivantes :
+
+```sql
+create table agence (
+  id_agence bigint not null auto_increment,
+  adresse varchar(255),
+  nom varchar(255),
+  telephone varchar(255),
+  ville varchar(255),
+  primary key (id_agence)
+) engine=InnoDB;
+
+create table client (
+  id_client bigint not null auto_increment,
+  date_inscription date,
+  email varchar(255),
+  nom varchar(255),
+  num_permis varchar(255),
+  prenom varchar(255),
+  telephone varchar(255),
+  primary key (id_client)
+) engine=InnoDB;
+
+create table contrat (
+  id_contrat bigint not null auto_increment,
+  date_signature date,
+  montant_total float(53),
+  valide bit,
+  primary key (id_contrat)
+) engine=InnoDB;
+
+create table employe (
+  id_employe bigint not null auto_increment,
+  nom varchar(255),
+  prenom varchar(255),
+  role enum ('AGENT','MANAGER'),
+  primary key (id_employe)
+) engine=InnoDB;
+
+create table equipement (
+  id_equipement bigint not null auto_increment,
+  libelle varchar(255),
+  primary key (id_equipement)
+) engine=InnoDB;
+
+create table maintenance (
+  id_maintenance bigint not null auto_increment,
+  date_debut date,
+  date_fin date,
+  description varchar(255),
+  primary key (id_maintenance)
+) engine=InnoDB;
+
+create table paiement (
+  id_paiement bigint not null auto_increment,
+  date_paiement date,
+  mode_paiement enum ('CARTE','ESPECES','VIREMENT'),
+  montant float(53),
+  primary key (id_paiement)
+) engine=InnoDB;
+
+create table reservation (
+  id_reservation bigint not null auto_increment,
+  date_debut date,
+  date_fin date,
+  statut enum ('ANNULEE','CONFIRMEE','EN_ATTENTE','TERMINEE'),
+  primary key (id_reservation)
+) engine=InnoDB;
+
+create table vehicule (
+  id_vehicule bigint not null auto_increment,
+  annee integer,
+  immatriculation varchar(255),
+  marque varchar(255),
+  modele varchar(255),
+  statut enum ('DISPONIBLE','EN_MAINTENANCE','HORS_SERVICE','LOUE'),
+  primary key (id_vehicule)
+) engine=InnoDB;
